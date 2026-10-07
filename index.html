@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>EarningX - Telegram Rewarded Ads Mini App</title>
+    <meta name="description" content="Earn coins by watching rewarded ads on Telegram with AdsGram & Monetag integrations, daily bonus, referral program, and full admin control." />
+    <meta property="og:title" content="EarningX - Telegram Rewarded Ads Mini App" />
+    <meta property="og:description" content="Earn coins by watching rewarded ads on Telegram with AdsGram & Monetag integrations, daily bonus, referral program, and full admin control." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- AdsGram Rewarded Interstitial SDK -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+
+    <!-- Monetag Rewarded Ad SDK (Default Zone 11950607) -->
+    <script src="//libtl.com/sdk.js" data-zone="11950607" data-sdk="show_11950607"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="bg-[#090d16] text-slate-100 min-h-screen flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- OUTSIDE TELEGRAM SCREEN (Graceful warning + instant browser testing) -->
+    <div id="outside-telegram-notice" class="hidden min-h-screen flex flex-col items-center justify-center p-6 text-center">
+      <div class="glass-panel p-8 max-w-md w-full border border-blue-500/20 shadow-2xl relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl"></div>
+        <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl"></div>
+
+        <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-4xl shadow-lg shadow-blue-500/30">
+          📱
+        </div>
+
+        <h1 class="text-2xl font-bold tracking-tight text-white mb-2">Telegram Mini App</h1>
+        <p class="text-slate-300 text-base font-medium mb-6 leading-relaxed">
+          Please open EarningX from Telegram.
+        </p>
+
+        <div class="space-y-3">
+          <a href="https://t.me/EarningXBot" target="_blank" rel="noopener noreferrer"
+             class="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold cta-button">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.37.74-.56 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.23-.03.48z"/>
+            </svg>
+            Open in Telegram Bot
+          </a>
+
+          <!-- Live Simulator for AI Studio / Web browser testing -->
+          <button id="btn-preview-mode" type="button"
+                  class="w-full py-2.5 px-4 rounded-xl text-sm font-medium bg-slate-800/80 hover:bg-slate-700/80 text-blue-400 border border-slate-700 transition cursor-pointer">
+            Launch Simulator (Browser Test Mode)
+          </button>
+
+          <a href="/admin.html"
+             class="inline-block text-xs text-slate-400 hover:text-slate-200 transition mt-2">
+            Go to Admin Control Panel &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="main-app" class="w-full max-w-md mx-auto flex-1 flex flex-col pb-24">
+
+      <!-- TOP BAR -->
+      <header class="p-4 flex items-center justify-between border-b border-slate-800/60 sticky top-0 bg-[#090d16]/90 backdrop-blur-md z-30">
+        <div class="flex items-center gap-3">
+          <img id="user-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
+               alt="User Avatar" class="w-9 h-9 rounded-full ring-2 ring-blue-500/40 object-cover bg-slate-800" />
+          <div>
+            <div class="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+              <span id="user-first-name">Telegram User</span>
+              <span class="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.2 rounded font-mono">EARNER</span>
+            </div>
+            <div id="user-username" class="text-xs text-slate-400 font-mono">@user</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span id="active-network-badge" class="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            Ads Active
+          </span>
+          <a href="/admin.html" title="Admin Panel"
+             class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </a>
+        </div>
+      </header>
+
+      <!-- SYSTEM ANNOUNCEMENT & MAINTENANCE BANNER -->
+      <div id="announcement-banner" class="m-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200 flex items-center justify-between">
+        <span id="announcement-text">Welcome to EarningX! Watch ads to earn real coins.</span>
+      </div>
+
+      <div id="maintenance-banner" class="hidden m-3 p-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-sm flex items-start gap-3">
+        <span class="text-xl">⚠️</span>
+        <div>
+          <div class="font-bold">System Maintenance Active</div>
+          <div id="maintenance-message-text" class="text-xs text-amber-200/90 mt-0.5">
+            EarningX is temporarily under maintenance for server upgrades. Ads and bonuses are paused.
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT TABS -->
+      <main class="flex-1 p-4 space-y-5">
+
+        <!-- 1. TAB: HOME -->
+        <div id="tab-home" class="space-y-4">
+          <!-- Balance Hero Card -->
+          <div class="glass-panel p-6 border-blue-500/30 relative overflow-hidden">
+            <div class="absolute -right-8 -bottom-8 w-36 h-36 bg-blue-600/15 rounded-full blur-2xl"></div>
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Current Balance</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-3xl font-extrabold tracking-tight text-white font-mono" id="user-balance">0</span>
+                  <span class="text-2xl pulse-coin">🪙</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Earned</span>
+                <div class="text-lg font-bold text-amber-400 font-mono mt-1">
+                  <span id="user-total-earned">0</span> 🪙
+                </div>
+              </div>
+            </div>
+
+            <!-- Metrics Grid: Today's Earnings & Ads Watched Today -->
+            <div class="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-slate-800">
+              <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800">
+                <div class="text-[11px] text-slate-400 font-medium">Today's Earnings</div>
+                <div class="text-base font-bold text-emerald-400 font-mono mt-0.5">
+                  <span id="user-today-earned">0</span> 🪙
+                </div>
+              </div>
+              <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800">
+                <div class="text-[11px] text-slate-400 font-medium">Ads Watched Today</div>
+                <div class="text-base font-bold text-slate-100 font-mono mt-0.5" id="user-today-ads">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRIMARY CTA: WATCH AD & EARN -->
+          <div class="space-y-2">
+            <button id="btn-watch-ad" type="button"
+                    class="w-full py-4 px-6 rounded-2xl text-center cta-button flex flex-col items-center justify-center gap-1 cursor-pointer">
+              <span id="ad-btn-text" class="text-lg font-bold tracking-wide">▶ WATCH AD & EARN</span>
+              <span id="ad-btn-subtext" class="text-xs text-blue-100/90 font-medium">+10 Coins on completion</span>
+            </button>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
+              <span>AdsGram: <strong id="adsgram-limit-progress" class="text-slate-200">0 / 20</strong></span>
+              <span>Monetag: <strong id="monetag-limit-progress" class="text-slate-200">0 / 20</strong></span>
+            </div>
+          </div>
+
+          <!-- DAILY BONUS CARD -->
+          <div class="glass-panel p-4 flex items-center justify-between border-slate-800">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/10 border border-amber-500/30 flex items-center justify-center text-2xl">
+                🎁
+              </div>
+              <div>
+                <div class="font-bold text-sm text-slate-100">Daily Login Reward</div>
+                <div class="text-xs text-slate-400">Claim free coins once every 24 hours</div>
+              </div>
+            </div>
+            <button id="btn-daily-bonus" type="button"
+                    class="py-2 px-3.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition shadow-lg shadow-amber-500/20 cursor-pointer">
+              <span id="daily-bonus-text">Claim +25 Coins</span>
+            </button>
+          </div>
+
+          <!-- REFERRAL CARD -->
+          <div class="glass-panel p-4 border-purple-500/20 flex items-center justify-between bg-gradient-to-r from-purple-950/30 to-indigo-950/20">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-2xl">
+                👥
+              </div>
+              <div>
+                <div class="font-bold text-sm text-slate-100">Invite & Earn</div>
+                <div class="text-xs text-slate-400">Get +20 Coins per invited friend</div>
+              </div>
+            </div>
+            <button type="button" data-nav-to="referral"
+                    class="py-2 px-3.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition cursor-pointer">
+              Invite
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. TAB: TASKS (Respects admin settings, individual ad options) -->
+        <div id="tab-tasks" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-100">Rewarded Tasks</h2>
+            <span class="text-xs text-slate-400">Complete tasks to earn</span>
+          </div>
+
+          <!-- AdsGram Task Card -->
+          <div class="glass-panel p-4 border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-sm border border-blue-500/30">
+                  AG
+                </div>
+                <div>
+                  <div class="text-sm font-bold text-slate-100">AdsGram Rewarded Ad</div>
+                  <div class="text-xs text-slate-400">Official Telegram sponsored video</div>
+                </div>
+              </div>
+              <span id="task-adsgram-reward-badge" class="text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                +10 🪙
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-slate-300 pt-1">
+              <span>Remaining today: <strong id="task-adsgram-remaining" class="text-blue-400 font-mono">20 left</strong></span>
+              <span id="task-adsgram-status" class="text-emerald-400 font-medium">Available</span>
+            </div>
+
+            <button id="btn-watch-adsgram" type="button"
+                    class="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-500 text-white transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              Watch AdsGram Ad
+            </button>
+          </div>
+
+          <!-- Monetag Task Card -->
+          <div class="glass-panel p-4 border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm border border-emerald-500/30">
+                  MT
+                </div>
+                <div>
+                  <div class="text-sm font-bold text-slate-100">Monetag Rewarded Ad</div>
+                  <div class="text-xs text-slate-400">Global advertiser rewarded video</div>
+                </div>
+              </div>
+              <span id="task-monetag-reward-badge" class="text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                +10 🪙
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-slate-300 pt-1">
+              <span>Remaining today: <strong id="task-monetag-remaining" class="text-emerald-400 font-mono">20 left</strong></span>
+              <span id="task-monetag-status" class="text-emerald-400 font-medium">Available</span>
+            </div>
+
+            <button id="btn-watch-monetag" type="button"
+                    class="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              Watch Monetag Ad
+            </button>
+          </div>
+
+          <!-- Daily Bonus Task Card -->
+          <div class="glass-panel p-4 border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl border border-amber-500/30">
+                  🎁
+                </div>
+                <div>
+                  <div class="text-sm font-bold text-slate-100">Daily Login Bonus</div>
+                  <div class="text-xs text-slate-400">Resets every calendar day</div>
+                </div>
+              </div>
+              <span id="task-daily-bonus-badge" class="text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                +25 🪙
+              </span>
+            </div>
+
+            <button id="btn-tasks-daily-bonus" type="button"
+                    class="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              Claim Daily Check-in
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. TAB: REFERRAL -->
+        <div id="tab-referral" class="hidden space-y-4">
+          <div class="glass-panel p-6 border-purple-500/30 text-center relative overflow-hidden">
+            <div class="text-3xl mb-2">👥</div>
+            <h2 class="text-xl font-bold text-white">Refer & Earn Program</h2>
+            <p class="text-xs text-slate-300 mt-1 max-w-xs mx-auto">
+              Share your link with friends. Whenever someone joins via your link, you get bonus coins!
+            </p>
+
+            <div class="grid grid-cols-2 gap-3 mt-5">
+              <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800">
+                <div class="text-[11px] text-slate-400">Total Referrals</div>
+                <div id="total-referrals-count" class="text-xl font-bold text-white font-mono mt-0.5">0</div>
+              </div>
+              <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800">
+                <div class="text-[11px] text-slate-400">Referral Earnings</div>
+                <div class="text-xl font-bold text-amber-400 font-mono mt-0.5">
+                  <span id="referral-earnings-total">0</span> 🪙
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Referral Code Box -->
+          <div class="glass-panel p-4 border-slate-800 space-y-2">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Your Referral Code</div>
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+              <span id="referral-code-display" class="font-mono text-sm font-bold text-purple-400">REF_...</span>
+              <button id="btn-copy-ref" type="button" class="text-xs font-semibold text-blue-400 hover:text-blue-300 transition cursor-pointer">
+                Copy Code
+              </button>
+            </div>
+          </div>
+
+          <!-- Referral Link Box -->
+          <div class="glass-panel p-4 border-slate-800 space-y-2">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Telegram Referral Link</div>
+            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-300 truncate" id="referral-link-display">
+              https://t.me/EarningXBot?startapp=REF_...
+            </div>
+            <button id="btn-copy-link" type="button" class="w-full py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer">
+              Copy Full Link
+            </button>
+          </div>
+
+          <button id="btn-share-telegram" type="button"
+                  class="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 cursor-pointer">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.37.74-.56 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.23-.03.48z"/>
+            </svg>
+            Share on Telegram
+          </button>
+        </div>
+
+        <!-- 4. TAB: HISTORY -->
+        <div id="tab-history" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-100">Transaction History</h2>
+            <span class="text-xs text-slate-400">Live ledger</span>
+          </div>
+
+          <!-- Empty State -->
+          <div id="history-empty-state" class="hidden glass-panel p-8 text-center border-slate-800">
+            <div class="text-3xl mb-2">📜</div>
+            <div class="text-sm font-semibold text-slate-300">No transactions yet</div>
+            <div class="text-xs text-slate-400 mt-1">Watch ads or claim daily bonus to earn coins!</div>
+          </div>
+
+          <!-- Transactions List -->
+          <div id="transactions-list" class="space-y-2.5"></div>
+        </div>
+
+        <!-- 5. TAB: PROFILE -->
+        <div id="tab-profile" class="hidden space-y-4">
+          <div class="glass-panel p-6 border-slate-800 text-center">
+            <img id="profile-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80"
+                 alt="User" class="w-20 h-20 rounded-full mx-auto ring-4 ring-blue-500/30 object-cover bg-slate-800" />
+            <h3 id="profile-full-name" class="text-lg font-bold text-white mt-3">User</h3>
+            <div id="profile-username" class="text-xs text-slate-400 font-mono">@user</div>
+          </div>
+
+          <!-- Profile Stats Details -->
+          <div class="glass-panel p-4 border-slate-800 divide-y divide-slate-800 text-sm">
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Telegram ID</span>
+              <span id="profile-tg-id" class="font-mono text-slate-200 font-medium">—</span>
+            </div>
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Account ID</span>
+              <span id="profile-user-id" class="font-mono text-[11px] text-slate-400 font-medium truncate max-w-[150px]">—</span>
+            </div>
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Current Balance</span>
+              <span class="font-mono text-amber-400 font-bold"><span id="profile-balance">0</span> 🪙</span>
+            </div>
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Total Earned</span>
+              <span class="font-mono text-emerald-400 font-bold"><span id="profile-total-earned">0</span> 🪙</span>
+            </div>
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Today's Earned</span>
+              <span class="font-mono text-emerald-400 font-bold"><span id="profile-today-earned">0</span> 🪙</span>
+            </div>
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Total Ads Watched</span>
+              <span id="profile-total-ads" class="font-mono text-slate-200 font-medium">0</span>
+            </div>
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Account Created</span>
+              <span id="profile-created-date" class="font-mono text-xs text-slate-300">Recently</span>
+            </div>
+            <div class="py-2.5 flex items-center justify-between">
+              <span class="text-slate-400">Referral Code</span>
+              <div class="flex items-center gap-2">
+                <span id="profile-ref-code" class="font-mono text-purple-400 font-bold">REF_...</span>
+                <button id="btn-copy-profile-ref" type="button" class="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Portal Link -->
+          <div class="glass-panel p-4 border-slate-800">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-bold text-slate-100">Admin Control Panel</div>
+                <div class="text-xs text-slate-400">Manage ad networks, users, and rewards</div>
+              </div>
+              <a href="/admin.html"
+                 class="py-2 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                Open &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- 5 WORKING BOTTOM NAVIGATION ITEMS: HOME, TASKS, REFERRAL, HISTORY, PROFILE -->
+      <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#090d16]/95 border-t border-slate-800/80 backdrop-blur-lg z-40 px-2 py-2 flex items-center justify-around">
+        <button type="button" data-tab="home" class="nav-item active flex-1 py-1 flex flex-col items-center justify-center text-[11px] cursor-pointer">
+          <div class="nav-icon-container p-1 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </div>
+          <span class="mt-0.5 font-medium">Home</span>
+        </button>
+
+        <button type="button" data-tab="tasks" class="nav-item flex-1 py-1 flex flex-col items-center justify-center text-[11px] cursor-pointer">
+          <div class="nav-icon-container p-1 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+          </div>
+          <span class="mt-0.5 font-medium">Tasks</span>
+        </button>
+
+        <button type="button" data-tab="referral" class="nav-item flex-1 py-1 flex flex-col items-center justify-center text-[11px] cursor-pointer">
+          <div class="nav-icon-container p-1 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+          <span class="mt-0.5 font-medium">Referral</span>
+        </button>
+
+        <button type="button" data-tab="history" class="nav-item flex-1 py-1 flex flex-col items-center justify-center text-[11px] cursor-pointer">
+          <div class="nav-icon-container p-1 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="mt-0.5 font-medium">History</span>
+        </button>
+
+        <button type="button" data-tab="profile" class="nav-item flex-1 py-1 flex flex-col items-center justify-center text-[11px] cursor-pointer">
+          <div class="nav-icon-container p-1 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <span class="mt-0.5 font-medium">Profile</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- AD INTERACTIVE FALLBACK MODAL (Guarantees testing in sandbox or strict ad blocker environments) -->
+    <div id="ad-player-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="glass-panel p-6 max-w-sm w-full border border-blue-500/40 text-center relative">
+        <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-blue-600/20 text-blue-400 flex items-center justify-center text-2xl border border-blue-500/30">
+          🎬
+        </div>
+        <h3 id="ad-modal-title" class="text-base font-bold text-white">Rewarded Ad</h3>
+        <p class="text-xs text-slate-300 mt-1">Please watch the sponsored ad until completion to receive your coins.</p>
+
+        <!-- Simulated Countdown Progress -->
+        <div class="my-5 p-4 rounded-xl bg-slate-900 border border-slate-800">
+          <div class="text-xs text-slate-400">Remaining Watch Time</div>
+          <div id="ad-modal-countdown" class="text-2xl font-extrabold text-blue-400 font-mono mt-1">5s</div>
+        </div>
+
+        <div class="space-y-2">
+          <button id="btn-complete-ad-sim" type="button" disabled
+                  class="w-full py-3 px-4 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-50 cursor-pointer">
+            Claim Reward & Continue
+          </button>
+          <button id="btn-cancel-ad" type="button"
+                  class="w-full py-2.5 px-4 rounded-xl text-xs text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            Close (Skip without reward)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core App Module -->
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

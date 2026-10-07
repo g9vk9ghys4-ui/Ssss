@@ -1,0 +1,6 @@
+{
+  "name": "EarningX - Telegram Rewarded Ads Mini App",
+  "description": "Earn coins by watching rewarded ads on Telegram with AdsGram & Monetag integrations, daily bonus, referral program, and full admin control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
